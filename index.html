@@ -1,0 +1,649 @@
+<meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Pertukaran Barang</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .card-shadow { box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .status-pending { background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); }
+        .status-completed { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); }
+        .status-transit { background: linear-gradient(135deg, #d299c2 0%, #fef9d7 100%); }
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white !important; }
+        }
+        #scanner-container {
+            position: relative;
+            width: 100%;
+            height: 300px;
+            overflow: hidden;
+            border-radius: 8px;
+        }
+        #scanner-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .scanner-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 100px;
+            border: 2px solid #10b981;
+            border-radius: 8px;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="gradient-bg text-white shadow-lg">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-white bg-opacity-20 p-2 rounded-lg">
+                        <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold">Sistem Pertukaran Barang</h1>
+                        <p class="text-white text-opacity-80 text-sm">Kelola pertukaran barang dengan mudah</p>
+                    </div>
+                </div>
+                <button onclick="showAddForm()" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-6 py-2 rounded-lg font-medium transition-all duration-200 flex items-center space-x-2">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+                    </svg>
+                    <span>Tambah Barang</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mx-auto px-6 py-8">
+        <!-- Stats Card -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white rounded-xl p-6 card-shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm font-medium">Total Barang</p>
+                        <p class="text-2xl font-bold text-gray-800" id="totalItems">0</p>
+                    </div>
+                    <div class="bg-blue-100 p-3 rounded-lg">
+                        <svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl p-6 card-shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm font-medium">Barang Hari Ini</p>
+                        <p class="text-2xl font-bold text-green-600" id="todayItems">0</p>
+                    </div>
+                    <div class="bg-green-100 p-3 rounded-lg">
+                        <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl p-6 card-shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm font-medium">Lokasi Terdaftar</p>
+                        <p class="text-2xl font-bold text-purple-600" id="locationCount">0</p>
+                    </div>
+                    <div class="bg-purple-100 p-3 rounded-lg">
+                        <svg class="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search -->
+        <div class="bg-white rounded-xl p-6 card-shadow mb-8">
+            <div class="flex items-center space-x-4">
+                <div class="flex-1">
+                    <input type="text" id="searchInput" placeholder="Cari berdasarkan nama barang, merek, barcode, atau lokasi..." 
+                           class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+                <div class="bg-blue-100 p-3 rounded-lg">
+                    <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Items List -->
+        <div class="bg-white rounded-xl card-shadow overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <h2 class="text-xl font-semibold text-gray-800">Daftar Barang</h2>
+                <div class="flex space-x-2">
+                    <button onclick="exportToExcel()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex items-center space-x-2 transition-colors duration-200">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                        </svg>
+                        <span>Export Excel</span>
+                    </button>
+                    <button onclick="printTable()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium flex items-center space-x-2 transition-colors duration-200">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v3a2 2 0 002 2h1v2a2 2 0 002 2h6a2 2 0 002-2v-2h1a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a2 2 0 00-2-2H7a2 2 0 00-2 2zm8 0H7v3h6V4zm0 8H7v4h6v-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <span>Print</span>
+                    </button>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full" id="itemsTable">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Barang</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Merek</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Barcode</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Serial Number</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dari</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ke</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal & Waktu</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Keterangan</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider no-print">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="itemsList" class="bg-white divide-y divide-gray-200">
+                        <!-- Items will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Item Modal -->
+    <div id="addModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xl font-semibold text-gray-800" id="modalTitle">Tambah Barang Baru</h3>
+                    <button onclick="hideAddForm()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <form id="addItemForm" class="p-6 space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nama Barang *</label>
+                        <input type="text" id="itemName" required class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Merek</label>
+                        <input type="text" id="itemBrand" class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Barcode</label>
+                        <div class="flex space-x-2">
+                            <input type="text" id="itemBarcode" class="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <button type="button" onclick="startBarcodeScanner()" class="bg-orange-600 hover:bg-orange-700 text-white px-4 py-3 rounded-lg font-medium flex items-center space-x-2 transition-colors duration-200">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h3a1 1 0 000 2H4v3a1 1 0 01-2 0V4zM3 16a1 1 0 01-1-1v-3a1 1 0 112 0v3h3a1 1 0 110 2H3zM17 4a1 1 0 00-1-1h-3a1 1 0 100 2h3v3a1 1 0 102 0V4zM17 16a1 1 0 011-1v-3a1 1 0 10-2 0v3h-3a1 1 0 100 2h3z" clip-rule="evenodd"/>
+                                </svg>
+                                <span>Scan</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Serial Number</label>
+                        <input type="text" id="itemSerial" class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Asal *</label>
+                        <input type="text" id="itemFrom" required class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Tujuan *</label>
+                        <input type="text" id="itemTo" required class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Keterangan</label>
+                    <textarea id="itemDescription" rows="4" class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Tambahkan keterangan atau catatan khusus..."></textarea>
+                </div>
+                <div class="flex justify-end space-x-4 pt-4">
+                    <button type="button" onclick="hideAddForm()" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium">
+                        Batal
+                    </button>
+                    <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium" id="submitBtn">
+                        Simpan Barang
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Barcode Scanner Modal -->
+    <div id="scannerModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-xl max-w-md w-full">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xl font-semibold text-gray-800">Scan Barcode</h3>
+                    <button onclick="stopBarcodeScanner()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6">
+                <div id="scanner-container">
+                    <div class="scanner-overlay"></div>
+                </div>
+                <p class="text-sm text-gray-600 mt-4 text-center">Arahkan kamera ke barcode untuk memindai</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let items = [];
+        let filteredItems = [];
+        let editingItemId = null;
+        let scannerActive = false;
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSampleData();
+            renderItems();
+            updateStats();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            document.getElementById('searchInput').addEventListener('input', filterItems);
+            document.getElementById('addItemForm').addEventListener('submit', addItem);
+        }
+
+        function loadSampleData() {
+            items = [
+                {
+                    id: 1,
+                    name: 'Laptop Dell Inspiron',
+                    brand: 'Dell',
+                    barcode: '123456789012',
+                    serial: 'DL2023001',
+                    from: 'Gudang Jakarta',
+                    to: 'Kantor Surabaya',
+                    description: 'Laptop untuk karyawan baru divisi IT',
+                    date: '2024-01-15',
+                    time: '09:30'
+                },
+                {
+                    id: 2,
+                    name: 'Printer Canon',
+                    brand: 'Canon',
+                    barcode: '987654321098',
+                    serial: 'CN2023002',
+                    from: 'Kantor Bandung',
+                    to: 'Gudang Jakarta',
+                    description: 'Printer rusak untuk diperbaiki',
+                    date: '2024-01-14',
+                    time: '14:15'
+                },
+                {
+                    id: 3,
+                    name: 'Monitor LG 24 inch',
+                    brand: 'LG',
+                    barcode: '456789123456',
+                    serial: 'LG2023003',
+                    from: 'Supplier',
+                    to: 'Gudang Jakarta',
+                    description: 'Monitor baru untuk upgrade workstation',
+                    date: '2024-01-16',
+                    time: '11:45'
+                },
+                {
+                    id: 4,
+                    name: 'Keyboard Logitech',
+                    brand: 'Logitech',
+                    barcode: '789123456789',
+                    serial: 'LG2023004',
+                    from: 'Gudang Jakarta',
+                    to: 'Kantor Medan',
+                    description: 'Keyboard wireless untuk workstation baru',
+                    date: '2024-01-17',
+                    time: '08:20'
+                },
+                {
+                    id: 5,
+                    name: 'Mouse Gaming Razer',
+                    brand: 'Razer',
+                    barcode: '321654987321',
+                    serial: 'RZ2023005',
+                    from: 'Supplier',
+                    to: 'Kantor Jakarta',
+                    description: 'Mouse gaming untuk tim developer',
+                    date: '2024-01-17',
+                    time: '10:30'
+                }
+            ];
+            filteredItems = [...items];
+        }
+
+        function showAddForm() {
+            editingItemId = null;
+            document.getElementById('modalTitle').textContent = 'Tambah Barang Baru';
+            document.getElementById('submitBtn').textContent = 'Simpan Barang';
+            document.getElementById('addModal').classList.remove('hidden');
+            document.getElementById('addModal').classList.add('flex');
+        }
+
+        function showEditForm(id) {
+            const item = items.find(item => item.id === id);
+            if (!item) return;
+
+            editingItemId = id;
+            document.getElementById('modalTitle').textContent = 'Edit Barang';
+            document.getElementById('submitBtn').textContent = 'Update Barang';
+            
+            // Fill form with existing data
+            document.getElementById('itemName').value = item.name;
+            document.getElementById('itemBrand').value = item.brand || '';
+            document.getElementById('itemBarcode').value = item.barcode || '';
+            document.getElementById('itemSerial').value = item.serial || '';
+            document.getElementById('itemFrom').value = item.from;
+            document.getElementById('itemTo').value = item.to;
+            document.getElementById('itemDescription').value = item.description || '';
+
+            document.getElementById('addModal').classList.remove('hidden');
+            document.getElementById('addModal').classList.add('flex');
+        }
+
+        function hideAddForm() {
+            document.getElementById('addModal').classList.add('hidden');
+            document.getElementById('addModal').classList.remove('flex');
+            document.getElementById('addItemForm').reset();
+            editingItemId = null;
+        }
+
+        function addItem(e) {
+            e.preventDefault();
+            
+            const itemData = {
+                name: document.getElementById('itemName').value,
+                brand: document.getElementById('itemBrand').value,
+                barcode: document.getElementById('itemBarcode').value,
+                serial: document.getElementById('itemSerial').value,
+                from: document.getElementById('itemFrom').value,
+                to: document.getElementById('itemTo').value,
+                description: document.getElementById('itemDescription').value,
+            };
+
+            if (editingItemId) {
+                // Update existing item
+                const itemIndex = items.findIndex(item => item.id === editingItemId);
+                if (itemIndex !== -1) {
+                    items[itemIndex] = { ...items[itemIndex], ...itemData };
+                }
+            } else {
+                // Add new item
+                const newItem = {
+                    id: Date.now(),
+                    ...itemData,
+                    date: new Date().toISOString().split('T')[0],
+                    time: new Date().toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'})
+                };
+                items.unshift(newItem);
+            }
+
+            filterItems();
+            updateStats();
+            hideAddForm();
+        }
+
+        function deleteItem(id) {
+            if (confirm('Apakah Anda yakin ingin menghapus barang ini?')) {
+                items = items.filter(item => item.id !== id);
+                filterItems();
+                updateStats();
+            }
+        }
+
+        function filterItems() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+
+            filteredItems = items.filter(item => {
+                return item.name.toLowerCase().includes(searchTerm) ||
+                       item.brand.toLowerCase().includes(searchTerm) ||
+                       item.barcode.includes(searchTerm) ||
+                       item.serial.toLowerCase().includes(searchTerm) ||
+                       item.from.toLowerCase().includes(searchTerm) ||
+                       item.to.toLowerCase().includes(searchTerm);
+            });
+
+            renderItems();
+        }
+
+        function renderItems() {
+            const container = document.getElementById('itemsList');
+            
+            if (filteredItems.length === 0) {
+                container.innerHTML = `
+                    <tr>
+                        <td colspan="10" class="px-6 py-8 text-center text-gray-500">
+                            <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                            </svg>
+                            <p class="text-lg font-medium">Tidak ada barang ditemukan</p>
+                            <p class="text-sm">Coba ubah filter pencarian atau tambah barang baru</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            container.innerHTML = filteredItems.map((item, index) => `
+                <tr class="hover:bg-gray-50 transition-colors duration-200">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${index + 1}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900">${item.name}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.brand || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.barcode || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.serial || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.from}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.to}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <div>${formatDate(item.date)}</div>
+                        <div class="text-xs text-gray-400">${item.time || '-'}</div>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-500 max-w-xs">
+                        <div class="truncate" title="${item.description || '-'}">${item.description || '-'}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium no-print">
+                        <div class="flex space-x-2">
+                            <button onclick="showEditForm(${item.id})" class="text-blue-600 hover:text-blue-900 transition-colors duration-200">
+                                Edit
+                            </button>
+                            <button onclick="deleteItem(${item.id})" class="text-red-600 hover:text-red-900 transition-colors duration-200">
+                                Hapus
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function updateStats() {
+            const total = items.length;
+            const today = new Date().toISOString().split('T')[0];
+            const todayItems = items.filter(item => item.date === today).length;
+            
+            // Get unique locations
+            const locations = new Set();
+            items.forEach(item => {
+                locations.add(item.from);
+                locations.add(item.to);
+            });
+
+            document.getElementById('totalItems').textContent = total;
+            document.getElementById('todayItems').textContent = todayItems;
+            document.getElementById('locationCount').textContent = locations.size;
+        }
+
+        function formatDate(dateString) {
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            return new Date(dateString).toLocaleDateString('id-ID', options);
+        }
+
+        // Export Functions
+        function exportToExcel() {
+            const data = filteredItems.map((item, index) => ({
+                'No': index + 1,
+                'Nama Barang': item.name,
+                'Merek': item.brand || '-',
+                'Barcode': item.barcode || '-',
+                'Serial Number': item.serial || '-',
+                'Dari': item.from,
+                'Ke': item.to,
+                'Tanggal': formatDate(item.date),
+                'Waktu': item.time || '-',
+                'Keterangan': item.description || '-'
+            }));
+
+            const worksheet = XLSX.utils.json_to_sheet(data);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Daftar Barang');
+            
+            const fileName = `daftar-barang-${new Date().toISOString().split('T')[0]}.xlsx`;
+            XLSX.writeFile(workbook, fileName);
+        }
+
+
+
+        // Barcode Scanner Functions
+        function startBarcodeScanner() {
+            document.getElementById('scannerModal').classList.remove('hidden');
+            document.getElementById('scannerModal').classList.add('flex');
+            
+            scannerActive = true;
+            
+            Quagga.init({
+                inputStream: {
+                    name: "Live",
+                    type: "LiveStream",
+                    target: document.querySelector('#scanner-container'),
+                    constraints: {
+                        width: 480,
+                        height: 320,
+                        facingMode: "environment"
+                    }
+                },
+                decoder: {
+                    readers: [
+                        "code_128_reader",
+                        "ean_reader",
+                        "ean_8_reader",
+                        "code_39_reader",
+                        "code_39_vin_reader",
+                        "codabar_reader",
+                        "upc_reader",
+                        "upc_e_reader",
+                        "i2of5_reader"
+                    ]
+                }
+            }, function(err) {
+                if (err) {
+                    console.log(err);
+                    alert('Tidak dapat mengakses kamera. Pastikan browser memiliki izin kamera.');
+                    stopBarcodeScanner();
+                    return;
+                }
+                Quagga.start();
+            });
+
+            Quagga.onDetected(function(data) {
+                if (scannerActive) {
+                    document.getElementById('itemBarcode').value = data.codeResult.code;
+                    stopBarcodeScanner();
+                }
+            });
+        }
+
+        function stopBarcodeScanner() {
+            scannerActive = false;
+            Quagga.stop();
+            document.getElementById('scannerModal').classList.add('hidden');
+            document.getElementById('scannerModal').classList.remove('flex');
+        }
+
+        function printTable() {
+            const printWindow = window.open('', '_blank');
+            const tableContent = document.getElementById('itemsTable').outerHTML;
+            
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Daftar Barang - Sistem Pertukaran Barang</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 20px; }
+                        h1 { text-align: center; color: #333; margin-bottom: 30px; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                        th { background-color: #f5f5f5; font-weight: bold; }
+                        tr:nth-child(even) { background-color: #f9f9f9; }
+                        .no-print { display: none !important; }
+                        .print-info { margin-bottom: 20px; font-size: 12px; color: #666; }
+                        @media print {
+                            body { margin: 0; }
+                            .no-print { display: none !important; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h1>DAFTAR BARANG PERTUKARAN</h1>
+                    <div class="print-info">
+                        <p>Tanggal Cetak: ${new Date().toLocaleDateString('id-ID', { 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        })}</p>
+                        <p>Total Barang: ${filteredItems.length} item</p>
+                    </div>
+                    ${tableContent}
+                </body>
+                </html>
+            `);
+            
+            printWindow.document.close();
+            printWindow.focus();
+            
+            setTimeout(() => {
+                printWindow.print();
+                printWindow.close();
+            }, 250);
+        }
+
+        // Add XLSX library for Excel export
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+        document.head.appendChild(script);
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97b4c5cf45626141',t:'MTc1NzIzMzA3OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
