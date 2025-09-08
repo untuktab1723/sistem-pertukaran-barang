@@ -4,14 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistem Pertukaran Barang</title>
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+
     <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <!-- QuaggaJS for Barcode Scanning -->
     <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
+
     <!-- SheetJS (xlsx) for Excel Export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
@@ -265,15 +270,15 @@
     </div>
 
     <script>
-        let items = [];
-        let filteredItems = [];
-        let editingItemId = null;
-        let scannerActive = false;
-
         // Inisialisasi Supabase Client
         const supabaseUrl = 'https://halaqljbdesuydyeitlw.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhhbGFxbGpiZGVzdXlkeWVpdGx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcyMzM4MzUsImV4cCI6MjA3MjgwOTgzNX0.Xb9DdGy-OpVpGBdXcQT8IT91bLtyDR5usUDo6XDG_1c';
         const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+        let items = [];
+        let filteredItems = [];
+        let editingItemId = null;
+        let scannerActive = false;
 
         // Initialize app
         document.addEventListener('DOMContentLoaded', function() {
@@ -481,7 +486,6 @@
             const today = new Date().toISOString().split('T')[0];
             const todayItems = items.filter(item => item.date === today).length;
             
-            // Get unique locations
             const locations = new Set();
             items.forEach(item => {
                 locations.add(item.from);
@@ -498,7 +502,6 @@
             return new Date(dateString).toLocaleDateString('id-ID', options);
         }
 
-        // Export Functions
         function exportToExcel() {
             const data = filteredItems.map((item, index) => ({
                 'No': index + 1,
@@ -521,7 +524,6 @@
             XLSX.writeFile(workbook, fileName);
         }
 
-        // Barcode Scanner Functions
         function startBarcodeScanner() {
             document.getElementById('scannerModal').classList.remove('hidden');
             document.getElementById('scannerModal').classList.add('flex');
