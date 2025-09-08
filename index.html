@@ -273,7 +273,7 @@
         // Inisialisasi Supabase Client
         const supabaseUrl = 'https://halaqljbdesuydyeitlw.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhhbGFxbGpiZGVzdXlkeWVpdGx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcyMzM4MzUsImV4cCI6MjA3MjgwOTgzNX0.Xb9DdGy-OpVpGBdXcQT8IT91bLtyDR5usUDo6XDG_1c';
-        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
         let items = [];
         let filteredItems = [];
